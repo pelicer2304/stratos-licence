@@ -43,7 +43,7 @@ export function Login() {
               <img
                 src="/image.png"
                 alt="Logo"
-                className="h-54 w-auto max-w-[420px] object-contain mx-auto drop-shadow-[0_0_28px_rgba(34,197,94,0.16)]"
+                className=" w-auto max-w-[220px] object-contain mx-auto drop-shadow-[0_0_28px_rgba(34,197,94,0.16)]"
               />
 
               <h1 className="mt-10 text-4xl font-semibold leading-tight">
