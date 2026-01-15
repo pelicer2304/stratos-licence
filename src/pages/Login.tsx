@@ -28,26 +28,22 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-[#05070B] text-white flex items-center justify-center px-6 py-10">
-      {/* Container maior para desktop */}
-      <div className="w-full max-w-6xl lg:max-w-7xl lg:min-h-[580px] overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.65)]">
-        {/* Colunas ajustadas para o form não ficar pequeno */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] lg:min-h-[580px]">
+      <div className="w-full max-w-6xl lg:max-w-7xl lg:min-h-[180px] overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.65)]">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] lg:min-h-[180px]">
           {/* HERO (desktop) */}
           <div className="relative hidden lg:flex flex-col justify-between p-12">
-            {/* candles “quase apagados” */}
             <div className="absolute inset-0 bg-[url('/candles-bg.svg')] bg-cover bg-center opacity-80" />
-            {/* overlay para contraste */}
             <div className="absolute inset-0 bg-gradient-to-br from-black/30 via-black/80 to-black/65" />
 
-            {/* glow sutil */}
             <div className="absolute -top-28 -left-28 h-80 w-80 rounded-full bg-primary/10 blur-[110px]" />
             <div className="absolute -bottom-28 -right-28 h-80 w-80 rounded-full bg-primary/10 blur-[110px]" />
 
             <div className="relative">
+              {/* FIX: controla o tamanho do logo */}
               <img
                 src="/image.png"
                 alt="Logo"
-                className=" w-auto object-contain drop-shadow-[0_0_28px_rgba(34,197,94,0.16)]"
+                className="h-54 w-auto max-w-[420px] object-contain mx-auto drop-shadow-[0_0_28px_rgba(34,197,94,0.16)]"
               />
 
               <h1 className="mt-10 text-4xl font-semibold leading-tight">
@@ -59,8 +55,6 @@ export function Login() {
               </p>
 
               <div className="mt-8 h-px w-24 bg-gradient-to-r from-primary/70 to-transparent" />
-
-              
             </div>
 
             <p className="relative text-sm text-white/45">
@@ -70,26 +64,23 @@ export function Login() {
 
           {/* FORM */}
           <div className="relative flex items-center p-6 sm:p-10 lg:p-12">
-            {/* fundo dark sutil */}
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,197,94,0.10),transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(34,197,94,0.06),transparent_60%)]" />
 
             <div className="relative w-full">
               {/* Header mobile */}
               <div className="lg:hidden text-center mb-8">
-                <img
-                  src="/image.png"
-                  alt="Logo"
-                  className="mx-auto h-16 w-auto object-contain drop-shadow-[0_0_24px_rgba(34,197,94,0.16)]"
-                />
+               <img
+  src="/image.png"
+  alt="Logo"
+  className="mx-auto object-contain h-[260px] w-auto max-w-none drop-shadow-[0_0_28px_rgba(34,197,94,0.16)]"
+/>
+    
+
                 <h1 className="mt-4 text-2xl font-semibold">Acesso à plataforma</h1>
                 <p className="mt-2 text-sm text-white/65">Faça login para continuar</p>
               </div>
 
-              {/* Card do form maior */}
-              <Card
-                glow
-                className="p-10 bg-black/28 border border-white/10 backdrop-blur-md w-full"
-              >
+              <Card glow className="p-10 bg-black/28 border border-white/10 backdrop-blur-md w-full">
                 <form onSubmit={handleSubmit} className="space-y-7">
                   <Input
                     label="Email"
@@ -149,7 +140,6 @@ export function Login() {
                 </form>
               </Card>
 
-              {/* Footer mobile */}
               <p className="text-center text-white/45 text-sm mt-6 lg:hidden">
                 Sistema de gerenciamento de licenças MT5
               </p>
