@@ -1,0 +1,6 @@
+# Example override for local use
+# Copy to docker-compose.override.yml if you want.
+services:
+  web:
+    ports:
+      - "5173:80"
