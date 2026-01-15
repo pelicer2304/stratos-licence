@@ -2,6 +2,19 @@ import { createContext, useContext, useEffect, useRef, useState, ReactNode } fro
 import { User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
+type AuthErrorLike = {
+  name?: string;
+  code?: string;
+  message?: string;
+};
+
+function isRefreshTokenNotFound(err: unknown) {
+  const e = err as AuthErrorLike;
+  const code = String(e?.code ?? '');
+  const message = String(e?.message ?? '');
+  return code === 'refresh_token_not_found' || message.toLowerCase().includes('refresh token not found');
+}
+
 interface AuthContextType {
   user: User | null;
   loading: boolean;
@@ -29,26 +42,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [adminChecked]);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      const sessionUser = session?.user ?? null;
-      setUser(sessionUser);
+    (async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
 
-      if (sessionUser) {
-        const sameUserAsLastCheck = lastCheckedUserIdRef.current === sessionUser.id;
-        const alreadyChecked = adminCheckedRef.current;
+        if (error) {
+          // If the stored refresh token is invalid, clear local session and force re-login.
+          if (isRefreshTokenNotFound(error)) {
+            await supabase.auth.signOut({ scope: 'local' });
+          }
 
-        if (!sameUserAsLastCheck || !alreadyChecked) {
-          lastCheckedUserIdRef.current = sessionUser.id;
-          setAdminChecked(false);
-          checkAdmin(sessionUser.id);
+          setUser(null);
+          setIsAdmin(false);
+          setCheckingAdmin(false);
+          setAdminChecked(true);
+          lastCheckedUserIdRef.current = null;
+          setLoading(false);
+          return;
+        }
+
+        const sessionUser = session?.user ?? null;
+        setUser(sessionUser);
+
+        if (sessionUser) {
+          const sameUserAsLastCheck = lastCheckedUserIdRef.current === sessionUser.id;
+          const alreadyChecked = adminCheckedRef.current;
+
+          if (!sameUserAsLastCheck || !alreadyChecked) {
+            lastCheckedUserIdRef.current = sessionUser.id;
+            setAdminChecked(false);
+            await checkAdmin(sessionUser.id);
+          } else {
+            setLoading(false);
+          }
         } else {
+          setAdminChecked(true);
           setLoading(false);
         }
-      } else {
+      } catch (err) {
+        // Defensive fallback: don't brick the UI on unexpected auth errors.
+        if (isRefreshTokenNotFound(err)) {
+          try {
+            await supabase.auth.signOut({ scope: 'local' });
+          } catch {
+            // ignore
+          }
+        }
+        setUser(null);
+        setIsAdmin(false);
+        setCheckingAdmin(false);
         setAdminChecked(true);
+        lastCheckedUserIdRef.current = null;
         setLoading(false);
       }
-    });
+    })();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       (async () => {
@@ -111,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
     if (error) throw error;
     setIsAdmin(false);
     setAdminChecked(false);

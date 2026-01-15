@@ -216,7 +216,7 @@ export function Licenses() {
               options={brokerOptions}
               value={selectedBrokerIds}
               onChange={setSelectedBrokerIds}
-              placeholder="Filtrar por servidores..."
+              placeholder="Filtrar por corretoras..."
             />
           </div>
 
@@ -242,7 +242,7 @@ export function Licenses() {
                       Login MT5
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">
-                      Servidores
+                      Corretoras
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">
                       Status

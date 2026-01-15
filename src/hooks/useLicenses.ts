@@ -31,20 +31,33 @@ export function useLicenses(filters?: LicenseFilters) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const normalizeLicenseRow = (row: any): License => {
-    const rawLogin = row?.mt5_login ?? row?.login ?? row?.mt5 ?? row?.mt_login;
-    const loginNumber = typeof rawLogin === 'number' ? rawLogin : Number(rawLogin);
+  const normalizeLicenseRow = (row: unknown): License => {
+    const obj = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
+
+    const rawLogin =
+      obj['mt5_login'] ?? obj['login'] ?? obj['mt5'] ?? obj['mt_login'] ?? obj['mt5Login'];
+
+    const loginNumber =
+      typeof rawLogin === 'number'
+        ? rawLogin
+        : typeof rawLogin === 'string'
+          ? Number(rawLogin)
+          : Number.NaN;
+
+    const brokersValue = obj['brokers'];
 
     return {
-      id: String(row?.id ?? ''),
-      client_name: String(row?.client_name ?? row?.client ?? row?.customer_name ?? row?.name ?? ''),
+      id: String(obj['id'] ?? ''),
+      client_name: String(
+        obj['client_name'] ?? obj['client'] ?? obj['customer_name'] ?? obj['name'] ?? ''
+      ),
       mt5_login: Number.isFinite(loginNumber) ? loginNumber : 0,
-      status: (row?.status ?? 'active') as License['status'],
-      expires_at: String(row?.expires_at ?? row?.expires ?? row?.expiresAt ?? ''),
-      notes: String(row?.notes ?? ''),
-      created_at: String(row?.created_at ?? ''),
-      updated_at: String(row?.updated_at ?? ''),
-      brokers: Array.isArray(row?.brokers) ? row.brokers : [],
+      status: (obj['status'] ?? 'active') as License['status'],
+      expires_at: String(obj['expires_at'] ?? obj['expires'] ?? obj['expiresAt'] ?? ''),
+      notes: String(obj['notes'] ?? ''),
+      created_at: String(obj['created_at'] ?? ''),
+      updated_at: String(obj['updated_at'] ?? ''),
+      brokers: Array.isArray(brokersValue) ? (brokersValue as License['brokers']) : [],
     };
   };
 
