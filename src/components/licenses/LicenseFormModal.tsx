@@ -13,7 +13,7 @@ const licenseSchema = z.object({
   mt5_login: z.coerce.number().int().positive('Login MT5 deve ser um número positivo'),
   status: z.enum(['active', 'expiring', 'blocked']),
   expires_at: z.string().min(1, 'Data de expiração é obrigatória'),
-  broker_ids: z.array(z.string()).min(1, 'Selecione pelo menos um servidor'),
+  broker_ids: z.array(z.string()).min(1, 'Selecione pelo menos uma corretora'),
   notes: z.string(),
 });
 
@@ -63,13 +63,20 @@ export function LicenseFormModal({
 
   const selectedBrokerIds = watch('broker_ids');
 
+  const toDateInputValue = (value: string) => {
+    // Accepts 'YYYY-MM-DD' or ISO timestamps and normalizes to 'YYYY-MM-DD'.
+    if (!value) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+    return String(value).slice(0, 10);
+  };
+
   useEffect(() => {
     if (license) {
       reset({
         client_name: license.client_name,
         mt5_login: license.mt5_login,
         status: license.status as 'active' | 'expiring' | 'blocked',
-        expires_at: license.expires_at,
+        expires_at: toDateInputValue(license.expires_at),
         broker_ids: license.brokers?.map(b => b.id) || [],
         notes: license.notes || '',
       });
@@ -140,11 +147,11 @@ export function LicenseFormModal({
 
           <div>
             <MultiSelect
-              label="Servidores Permitidos"
+              label="Corretoras Permitidas"
               options={brokerOptions}
               value={selectedBrokerIds}
               onChange={values => setValue('broker_ids', values, { shouldValidate: true })}
-              placeholder="Selecione os servidores..."
+              placeholder="Selecione as corretoras..."
             />
             {errors.broker_ids && (
               <p className="mt-1 text-sm text-danger">{errors.broker_ids.message}</p>

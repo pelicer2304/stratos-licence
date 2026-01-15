@@ -31,6 +31,23 @@ export function useLicenses(filters?: LicenseFilters) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const normalizeLicenseRow = (row: any): License => {
+    const rawLogin = row?.mt5_login ?? row?.login ?? row?.mt5 ?? row?.mt_login;
+    const loginNumber = typeof rawLogin === 'number' ? rawLogin : Number(rawLogin);
+
+    return {
+      id: String(row?.id ?? ''),
+      client_name: String(row?.client_name ?? row?.client ?? row?.customer_name ?? row?.name ?? ''),
+      mt5_login: Number.isFinite(loginNumber) ? loginNumber : 0,
+      status: (row?.status ?? 'active') as License['status'],
+      expires_at: String(row?.expires_at ?? row?.expires ?? row?.expiresAt ?? ''),
+      notes: String(row?.notes ?? ''),
+      created_at: String(row?.created_at ?? ''),
+      updated_at: String(row?.updated_at ?? ''),
+      brokers: Array.isArray(row?.brokers) ? row.brokers : [],
+    };
+  };
+
   const fetchLicenses = async () => {
     try {
       setLoading(true);
@@ -43,14 +60,14 @@ export function useLicenses(filters?: LicenseFilters) {
 
       if (queryError) throw queryError;
 
-      let filteredData = data || [];
+      let filteredData = (data || []).map(normalizeLicenseRow);
 
       if (filters?.search) {
         const search = filters.search.toLowerCase();
         filteredData = filteredData.filter(
           license =>
-            license.client_name.toLowerCase().includes(search) ||
-            license.mt5_login.toString().includes(search)
+            String(license.client_name || '').toLowerCase().includes(search) ||
+            String(license.mt5_login || '').includes(search)
         );
       }
 

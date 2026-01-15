@@ -27,87 +27,135 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-bg-primary via-bg-secondary to-bg-primary flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJyZ2JhKDM0LDE5Nyw5NCwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-30"></div>
+    <div className="min-h-screen bg-[#05070B] text-white flex items-center justify-center px-6 py-10">
+      {/* Container maior para desktop */}
+      <div className="w-full max-w-6xl lg:max-w-7xl lg:min-h-[580px] overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-[0_20px_80px_rgba(0,0,0,0.65)]">
+        {/* Colunas ajustadas para o form não ficar pequeno */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] lg:min-h-[580px]">
+          {/* HERO (desktop) */}
+          <div className="relative hidden lg:flex flex-col justify-between p-12">
+            {/* candles “quase apagados” */}
+            <div className="absolute inset-0 bg-[url('/candles-bg.svg')] bg-cover bg-center opacity-80" />
+            {/* overlay para contraste */}
+            <div className="absolute inset-0 bg-gradient-to-br from-black/30 via-black/80 to-black/65" />
 
-      <div className="absolute top-20 left-10 w-96 h-96 bg-primary/5 rounded-full blur-[120px]"></div>
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/5 rounded-full blur-[120px]"></div>
+            {/* glow sutil */}
+            <div className="absolute -top-28 -left-28 h-80 w-80 rounded-full bg-primary/10 blur-[110px]" />
+            <div className="absolute -bottom-28 -right-28 h-80 w-80 rounded-full bg-primary/10 blur-[110px]" />
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center mb-4">
-            <img 
-              src="/image.png" 
-              alt="Logo" 
-              className="w-15 h-50 object-contain drop-shadow-[0_0_30px_rgba(34,197,94,0.3)]"
-            />
-          </div>
-          
-        </div>
+            <div className="relative">
+              <img
+                src="/image.png"
+                alt="Logo"
+                className=" w-auto object-contain drop-shadow-[0_0_28px_rgba(34,197,94,0.16)]"
+              />
 
-        <Card glow className="p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <Input
-              label="Email"
-              type="email"
-              placeholder="seu@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
+              <h1 className="mt-10 text-4xl font-semibold leading-tight">
+                Acesso à plataforma
+              </h1>
 
-            <Input
-              label="Senha"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
+              <p className="mt-4 text-base text-white/70 max-w-md">
+                Entre com suas credenciais para gerenciar licenças MT5 com segurança e performance.
+              </p>
 
-            {error && (
-              <div className="p-3 rounded-lg bg-danger-bg border border-danger/30 text-danger text-sm">
-                {error}
-              </div>
-            )}
+              <div className="mt-8 h-px w-24 bg-gradient-to-r from-primary/70 to-transparent" />
 
-            <Button
-              type="submit"
-              variant="primary"
-              size="lg"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Entrando...
-                </span>
-              ) : (
-                <>
-                  <LogIn className="w-5 h-5" />
-                  Entrar
-                </>
-              )}
-            </Button>
-
-            <div className="text-center">
-              <button
-                type="button"
-                className="text-sm text-primary hover:text-primary-hover transition-colors"
-                onClick={() => alert('Funcionalidade em desenvolvimento')}
-              >
-                Esqueceu a senha?
-              </button>
+              
             </div>
-          </form>
-        </Card>
 
-        <p className="text-center text-text-muted text-sm mt-6">
-          Sistema de gerenciamento de licenças MT5
-        </p>
+            <p className="relative text-sm text-white/45">
+              Sistema de gerenciamento de licenças MT5
+            </p>
+          </div>
+
+          {/* FORM */}
+          <div className="relative flex items-center p-6 sm:p-10 lg:p-12">
+            {/* fundo dark sutil */}
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(34,197,94,0.10),transparent_55%),radial-gradient(ellipse_at_bottom,_rgba(34,197,94,0.06),transparent_60%)]" />
+
+            <div className="relative w-full">
+              {/* Header mobile */}
+              <div className="lg:hidden text-center mb-8">
+                <img
+                  src="/image.png"
+                  alt="Logo"
+                  className="mx-auto h-16 w-auto object-contain drop-shadow-[0_0_24px_rgba(34,197,94,0.16)]"
+                />
+                <h1 className="mt-4 text-2xl font-semibold">Acesso à plataforma</h1>
+                <p className="mt-2 text-sm text-white/65">Faça login para continuar</p>
+              </div>
+
+              {/* Card do form maior */}
+              <Card
+                glow
+                className="p-10 bg-black/28 border border-white/10 backdrop-blur-md w-full"
+              >
+                <form onSubmit={handleSubmit} className="space-y-7">
+                  <Input
+                    label="Email"
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                  />
+
+                  <Input
+                    label="Senha"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    autoComplete="current-password"
+                  />
+
+                  {error && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/25 text-red-200 text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <Button
+                    type="submit"
+                    variant="primary"
+                    size="lg"
+                    className="w-full"
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Entrando...
+                      </span>
+                    ) : (
+                      <>
+                        <LogIn className="w-5 h-5" />
+                        Entrar
+                      </>
+                    )}
+                  </Button>
+
+                  <div className="flex items-center justify-center pt-1">
+                    <button
+                      type="button"
+                      className="text-sm text-primary/90 hover:text-primary transition-colors"
+                      onClick={() => alert('Funcionalidade em desenvolvimento')}
+                    >
+                      Esqueceu a senha?
+                    </button>
+                  </div>
+                </form>
+              </Card>
+
+              {/* Footer mobile */}
+              <p className="text-center text-white/45 text-sm mt-6 lg:hidden">
+                Sistema de gerenciamento de licenças MT5
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
