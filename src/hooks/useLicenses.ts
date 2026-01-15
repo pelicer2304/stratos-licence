@@ -66,14 +66,76 @@ export function useLicenses(filters?: LicenseFilters) {
       setLoading(true);
       setError(null);
 
-      const { data, error: queryError } = await supabase
+      // Preferred path: query the DB view.
+      // Some installations created the view before adding columns like client_name/mt5_login;
+      // in that case the view rows won't include those fields, so we fallback to manual joins.
+      let rows: unknown[] = [];
+      const { data: viewData, error: viewError } = await supabase
         .from('v_licenses_with_brokers')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (queryError) throw queryError;
+      if (!viewError) {
+        rows = (viewData || []) as unknown[];
+      }
 
-      let filteredData = (data || []).map(normalizeLicenseRow);
+      const viewLooksMissingFields = (() => {
+        const first = rows[0];
+        if (!first || typeof first !== 'object') return false;
+        const obj = first as Record<string, unknown>;
+        // If the view was created before columns existed, they won't be present at all.
+        return !('client_name' in obj) || !('mt5_login' in obj);
+      })();
+
+      if (viewError || viewLooksMissingFields) {
+        // Fallback: query licenses + license_brokers + brokers and merge client-side.
+        const { data: licensesData, error: licensesError } = await supabase
+          .from('licenses')
+          .select('id, client_name, mt5_login, status, expires_at, notes, created_at, updated_at')
+          .order('created_at', { ascending: false });
+
+        if (licensesError) throw licensesError;
+
+        const { data: linksData, error: linksError } = await supabase
+          .from('license_brokers')
+          .select('license_id, broker_id');
+
+        if (linksError) throw linksError;
+
+        const { data: brokersData, error: brokersError } = await supabase
+          .from('brokers')
+          .select('id, name, slug, is_active');
+
+        if (brokersError) throw brokersError;
+
+        const brokerById = new Map(
+          (brokersData || []).map(b => [
+            (b as { id: string }).id,
+            b as unknown as NonNullable<License['brokers']>[number],
+          ])
+        );
+
+        const brokersByLicenseId = new Map<string, NonNullable<License['brokers']>>();
+        for (const link of (linksData || []) as Array<{ license_id: string; broker_id: string }>) {
+          const broker = brokerById.get(link.broker_id);
+          if (!broker) continue;
+          const list = brokersByLicenseId.get(link.license_id) ?? [];
+          list.push(broker);
+          brokersByLicenseId.set(link.license_id, list);
+        }
+
+        // Normalize rows from the licenses table into the License shape.
+        rows = (licensesData || []).map(l => {
+          const obj = l as unknown as Record<string, unknown>;
+          const id = String(obj['id'] ?? '');
+          return {
+            ...obj,
+            brokers: brokersByLicenseId.get(id) ?? [],
+          };
+        });
+      }
+
+      let filteredData = rows.map(normalizeLicenseRow);
 
       if (filters?.search) {
         const search = filters.search.toLowerCase();
@@ -121,9 +183,14 @@ export async function createLicense(data: {
 }) {
   const { broker_ids, ...licenseData } = data;
 
+  const client_name = String(licenseData.client_name ?? '').trim();
+  const mt5_login = Number(licenseData.mt5_login);
+  if (!client_name) throw new Error('Nome do cliente é obrigatório');
+  if (!Number.isFinite(mt5_login) || mt5_login <= 0) throw new Error('Login MT5 inválido');
+
   const { data: license, error: licenseError } = await supabase
     .from('licenses')
-    .insert(licenseData)
+    .insert({ ...licenseData, client_name, mt5_login })
     .select()
     .single();
 
@@ -163,9 +230,14 @@ export async function updateLicense(
 ) {
   const { broker_ids, ...licenseData } = data;
 
+  const client_name = String(licenseData.client_name ?? '').trim();
+  const mt5_login = Number(licenseData.mt5_login);
+  if (!client_name) throw new Error('Nome do cliente é obrigatório');
+  if (!Number.isFinite(mt5_login) || mt5_login <= 0) throw new Error('Login MT5 inválido');
+
   const { data: license, error: licenseError } = await supabase
     .from('licenses')
-    .update(licenseData)
+    .update({ ...licenseData, client_name, mt5_login })
     .eq('id', id)
     .select()
     .single();
@@ -215,6 +287,14 @@ type PostgrestErrorLike = {
   message?: string;
 };
 
+function shouldRetryOmittingUnknownAuditColumn(err: unknown, column: 'table_name') {
+  const e = err as PostgrestErrorLike;
+  const code = String(e.code ?? '');
+  const message = String(e.message ?? '');
+  if (code !== '42703' && code !== 'PGRST204') return false;
+  return message.toLowerCase().includes(column);
+}
+
 async function logAudit(action: string, entity: string, entityId: string, meta: Record<string, unknown>) {
   if (!auditLoggingEnabled) return;
 
@@ -232,12 +312,21 @@ async function logAudit(action: string, entity: string, entityId: string, meta: 
     user_id: user?.id ?? null,
   };
 
-  const { error } = await supabase.from('audit_logs').insert(basePayload);
+  // Try with table_name first (some schemas require it NOT NULL).
+  let { error } = await supabase
+    .from('audit_logs')
+    .insert(({ ...basePayload, table_name: entity } as unknown) as AuditLogInsert);
+
+  // If this schema doesn't have table_name, retry without it.
+  if (error && shouldRetryOmittingUnknownAuditColumn(error, 'table_name')) {
+    ({ error } = await supabase.from('audit_logs').insert(basePayload));
+  }
 
   if (error) {
     console.warn('Audit log insert failed:', error);
     const code = (error as PostgrestErrorLike)?.code;
 
+    // Legacy fallback (kept for extra safety).
     if (code === '23502' && String((error as PostgrestErrorLike)?.message || '').includes('table_name')) {
       const retryPayload = ({ ...basePayload, table_name: entity } as unknown) as AuditLogInsert;
       const { error: retryError } = await supabase.from('audit_logs').insert(retryPayload);

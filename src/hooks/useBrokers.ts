@@ -37,6 +37,14 @@ type PostgrestErrorLike = {
   message?: string;
 };
 
+function shouldRetryOmittingUnknownAuditColumn(err: unknown, column: 'table_name') {
+  const e = err as PostgrestErrorLike;
+  const code = String(e.code ?? '');
+  const message = String(e.message ?? '');
+  if (code !== '42703' && code !== 'PGRST204') return false;
+  return message.toLowerCase().includes(column);
+}
+
 function normalizeBrokerServer(row: BrokerServerRow): BrokerServer {
   return {
     id: row.id,
@@ -300,7 +308,15 @@ async function logAudit(action: string, entity: string, entityId: string, meta: 
     user_id: user?.id ?? null,
   };
 
-  const { error } = await supabase.from('audit_logs').insert(basePayload);
+  // Try with table_name first (some schemas require it NOT NULL).
+  let { error } = await supabase
+    .from('audit_logs')
+    .insert(({ ...basePayload, table_name: entity } as unknown) as AuditLogInsert);
+
+  // If this schema doesn't have table_name, retry without it.
+  if (error && shouldRetryOmittingUnknownAuditColumn(error, 'table_name')) {
+    ({ error } = await supabase.from('audit_logs').insert(basePayload));
+  }
 
   if (error) {
     // Don't block the main flow because of audit issues.
