@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Key, Search, Plus, Edit, Trash2, TrendingUp, Clock, Ban } from 'lucide-react';
+import { Key, Search, Plus, Edit, Trash2, TrendingUp, Clock, Ban, Copy } from 'lucide-react';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
@@ -90,6 +90,26 @@ export function Licenses() {
       month: '2-digit',
       year: 'numeric',
     });
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Chave copiada!');
+    } catch {
+      // Fallback for older browsers / insecure contexts
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(textarea);
+      if (ok) toast.success('Chave copiada!');
+      else toast.error('Não foi possível copiar a chave');
+    }
   };
 
   const getDaysUntilExpiration = (expiresAt: string) => {
@@ -239,6 +259,9 @@ export function Licenses() {
                       Cliente
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">
+                      Chave
+                    </th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">
                       Login MT5
                     </th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-text-secondary">
@@ -259,6 +282,8 @@ export function Licenses() {
                   {licenses.map(license => {
                     const daysUntilExpiration = getDaysUntilExpiration(license.expires_at);
                     const brokersList = Array.isArray(license.brokers) ? license.brokers : [];
+                    const key = license.license_key ? String(license.license_key) : '';
+                    const keyShort = key ? `${key.slice(0, 6)}...${key.slice(-6)}` : '—';
 
                     return (
                       <tr
@@ -267,6 +292,27 @@ export function Licenses() {
                       >
                         <td className="py-4 px-4">
                           <p className="font-medium text-text-primary">{license.client_name}</p>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2">
+                            <code className="text-sm text-text-secondary bg-surface-elevated/50 px-2 py-1 rounded font-mono">
+                              {keyShort}
+                            </code>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!key) {
+                                  toast.error('Licença sem chave');
+                                  return;
+                                }
+                                void copyToClipboard(key);
+                              }}
+                              className="p-2 rounded-lg bg-bg-primary/40 hover:bg-surface-elevated text-text-secondary hover:text-primary transition-colors border border-border-subtle"
+                              title="Copiar chave"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
                         </td>
                         <td className="py-4 px-4">
                           <code className="text-sm text-text-secondary bg-surface-elevated/50 px-2 py-1 rounded font-mono">

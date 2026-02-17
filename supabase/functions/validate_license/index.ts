@@ -27,11 +27,18 @@ serve(async (req) => {
     )
 
     // 1. Buscar licença
+    type LicenseRow = {
+      id: string
+      status: string
+      expires_at: string | null
+      mt5_login: string | number | null
+    }
+
     const { data: license, error: licenseError } = await supabaseAdmin
       .from('licenses')
       .select('id, status, expires_at, mt5_login')
       .eq('license_key', license_key)
-      .single()
+      .single<LicenseRow>()
 
     if (licenseError || !license) {
       await logValidation(supabaseAdmin, null, 'INVALID_KEY', server, login)
@@ -62,9 +69,22 @@ serve(async (req) => {
       }
     }
 
-    // 4. Verificar MT5 login (se configurado)
-    if (license.mt5_login && license.mt5_login !== login) {
-      await logValidation(supabaseAdmin, license.id, 'INVALID_LOGIN', server, login)
+    // 4. Verificar MT5 login (obrigatório)
+    // Postgres bigint may come back as string; compare by string to avoid precision issues.
+    const storedLogin = license?.mt5_login
+    const storedLoginStr = storedLogin == null ? '' : String(storedLogin).trim()
+    const requestedLoginStr = String(login ?? '').trim()
+
+    if (!storedLoginStr) {
+      await logValidation(supabaseAdmin, license.id, 'LOGIN_NOT_SET', server, Number(login))
+      return new Response(
+        JSON.stringify({ ok: false, reason: 'LOGIN_NOT_SET' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (storedLoginStr !== requestedLoginStr) {
+      await logValidation(supabaseAdmin, license.id, 'INVALID_LOGIN', server, Number(login))
       return new Response(
         JSON.stringify({ ok: false, reason: 'INVALID_LOGIN' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -90,7 +110,7 @@ serve(async (req) => {
     // 6. Verificar se licença permite esse broker
     const { data: licenseBroker } = await supabaseAdmin
       .from('license_brokers')
-      .select('id')
+      .select('license_id')
       .eq('license_id', license.id)
       .eq('broker_id', brokerServer.broker_id)
       .single()

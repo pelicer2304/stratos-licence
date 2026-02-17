@@ -5,6 +5,7 @@ import type { Database, Json } from '../types/database';
 
 export interface License {
   id: string;
+  license_key?: string | null;
   client_name: string;
   mt5_login: number;
   status: 'active' | 'expiring' | 'blocked';
@@ -31,6 +32,19 @@ export function useLicenses(filters?: LicenseFilters) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const isExpired = (expiresAt: string) => {
+    if (!expiresAt) return false;
+    const d = new Date(expiresAt);
+    if (Number.isNaN(d.getTime())) {
+      // Try date-only (YYYY-MM-DD)
+      const dateOnly = String(expiresAt).slice(0, 10);
+      const d2 = new Date(dateOnly);
+      if (Number.isNaN(d2.getTime())) return false;
+      return d2.getTime() < Date.now();
+    }
+    return d.getTime() < Date.now();
+  };
+
   const normalizeLicenseRow = (row: unknown): License => {
     const obj = row && typeof row === 'object' ? (row as Record<string, unknown>) : {};
 
@@ -46,14 +60,20 @@ export function useLicenses(filters?: LicenseFilters) {
 
     const brokersValue = obj['brokers'];
 
+    const expires_at = String(obj['expires_at'] ?? obj['expires'] ?? obj['expiresAt'] ?? '');
+    const rawStatus = (obj['status'] ?? 'active') as License['status'];
+    const computedStatus: License['status'] =
+      rawStatus === 'blocked' ? 'blocked' : isExpired(expires_at) ? 'blocked' : rawStatus;
+
     return {
       id: String(obj['id'] ?? ''),
+      license_key: obj['license_key'] == null ? null : String(obj['license_key']),
       client_name: String(
         obj['client_name'] ?? obj['client'] ?? obj['customer_name'] ?? obj['name'] ?? ''
       ),
       mt5_login: Number.isFinite(loginNumber) ? loginNumber : 0,
-      status: (obj['status'] ?? 'active') as License['status'],
-      expires_at: String(obj['expires_at'] ?? obj['expires'] ?? obj['expiresAt'] ?? ''),
+      status: computedStatus,
+      expires_at,
       notes: String(obj['notes'] ?? ''),
       created_at: String(obj['created_at'] ?? ''),
       updated_at: String(obj['updated_at'] ?? ''),
@@ -91,7 +111,7 @@ export function useLicenses(filters?: LicenseFilters) {
         // Fallback: query licenses + license_brokers + brokers and merge client-side.
         const { data: licensesData, error: licensesError } = await supabase
           .from('licenses')
-          .select('id, client_name, mt5_login, status, expires_at, notes, created_at, updated_at')
+          .select('id, license_key, client_name, mt5_login, status, expires_at, notes, created_at, updated_at')
           .order('created_at', { ascending: false });
 
         if (licensesError) throw licensesError;
@@ -188,9 +208,14 @@ export async function createLicense(data: {
   if (!client_name) throw new Error('Nome do cliente é obrigatório');
   if (!Number.isFinite(mt5_login) || mt5_login <= 0) throw new Error('Login MT5 inválido');
 
+  const license_key =
+    (globalThis.crypto && 'randomUUID' in globalThis.crypto
+      ? (globalThis.crypto as Crypto).randomUUID()
+      : `lic_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`);
+
   const { data: license, error: licenseError } = await supabase
     .from('licenses')
-    .insert({ ...licenseData, client_name, mt5_login })
+    .insert({ ...licenseData, client_name, mt5_login, license_key })
     .select()
     .single();
 
